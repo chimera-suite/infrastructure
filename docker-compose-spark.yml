@@ -1,0 +1,43 @@
+version: "3"
+services:
+
+# -------------------- SPARK CLUSTER --------------------
+  spark-master:
+    image: bde2020/spark-master:3.0.1-hadoop3.2
+    hostname: spark-master
+    container_name: spark-master
+    ports:
+      - "8084:8080"
+      - "7077:7077"
+    environment:
+      - INIT_DAEMON_STEP=setup_spark
+  spark-worker:
+    image: bde2020/spark-worker:3.0.1-hadoop3.2
+    hostname: spark-worker
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+
+# -------------------- SPARK THRIFTSERVER --------------------
+  thriftserver:
+    image: chimerasuite/thriftserver:3.0.1-hadoop3.2
+    hostname: thriftserver
+    container_name: thriftserver
+    depends_on:
+      - spark-master
+    ports: 
+      - "10001:10000"
+    environment:
+      - "SPARK_MASTER=spark-master:7077"
+      - "HADOOP_CONF_DIR=/spark/conf/hive-site.xml"
+    volumes: 
+      - "./spark/conf/hive-site.xml:/spark/conf/hive-site.xml"
+
+networks:
+  default:
+    external:
+      name: qwerty

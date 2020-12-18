@@ -1,0 +1,17 @@
+version: "3"
+services:
+  
+    jena-fuseki:
+        hostname: jena-fuseki
+        container_name: jena-fuseki
+        image: stain/jena-fuseki
+        environment: 
+             - "ADMIN_PASSWORD=admin"
+             - QUERY_TIMEOUT=500000
+        ports:
+            - "3030:3030"
+            
+networks:
+  default:
+    external:
+      name: qwerty

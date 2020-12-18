@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  ontop:
+    hostname: ontop
+    container_name: ontop
+    image: chimerasuite/ontop:fd38fec7a0
+    environment: 
+      - "ONTOP_ONTOLOGY_FILE=/opt/ontop/input/FILE.owl"  # ADD ONTOLOGY FILE FOR ONTOP
+      - "ONTOP_MAPPING_FILE=/opt/ontop/input/FILE.obda"  # ADD MAPPING FILE 
+      - "ONTOP_PROPERTIES_FILE=/opt/ontop/input/spark_jdbc.properties"
+    ports:
+      - "8090:8080"
+    volumes:
+      - "./ontop/input:/opt/ontop/input"
+      - "./ontop/jdbc:/opt/ontop/jdbc"
+ 
+networks:
+  default:
+    external:
+      name: qwerty
