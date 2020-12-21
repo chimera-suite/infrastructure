@@ -1,13 +1,38 @@
 
 # Infrastructure
 
-This repository contains a template of the Chimera infrastructure. The components are run from docker-compose images. If you don not have docker-compose, please follow this [official guide](https://docs.docker.com/compose/install/) to install it.
+This repository contains a template of the Chimera infrastructure. The infrastructure template is composed of several docker images, that simulates the behaviour of data pipeline starting from big data technologies and passing trough semantic techs.
 
-You can see how are used the components in this [demo](https://github.com/chimera-suite/use-case).
+The components are run from docker-compose images. If you do not have it installed, please follow this [official guide](https://docs.docker.com/compose/install/).
+
+The goal of this repository is to make available a model for integrating OntopSpark and PySPARQL into the data pipeline while minimizing your efforts. Instead, if you're only interested on trying to run Chimera on testing environment, we strongly suggest to look first at this [__demo__](https://github.com/chimera-suite/use-case).
 
 ## Configuration
 
-For correctly deploying the infrastructure it is needed to run all docker images in parallel and respecting the boot order.
+Here we briefly discuss the components. For correctly deploying the infrastructure it is needed to run all docker images in parallel and respecting the boot order. Please take in consideration that some docker images (Apache Hive and Apache Spark) needs several minutes to complete the startup. We suggest to use 5 terminal windows (one for each component), and run all images without the `-d` option to be able to check the output logs.
+
+__REMARK__: The infrastructural template is described from a docker's network viewpoint, as consequence all the network addresses and ports are expressed from an inside the docker's virtual network perspective. For connecting to the docker from outside the virtual network is needed to take the address of the machine and the port mapped on the left of the instance's dockerfiles. For example, in the below dockerfile snippet code, the `dummy-example` instance can be accessed from the internal docker network called `qwerty` at [http://dummy-example:10000](http://dummy-example:10000), instead from outside the network at [http://localhost:9000](http://localhost:9000) (assuming that the docker instance is run on the same machine).
+
+```
+version: "3.8"
+services:
+  dummy-example:
+      image: dummy-example
+      hostname: dummy-example
+      container_name: dummy-example
+      ports:
+        - "9000:10000"
+      environment:
+        - "SPARK_MASTER=spark-master:7077"
+        - "HADOOP_CONF_DIR=/spark/conf/hive-site.xml"
+      volumes:
+        - "./spark/conf/hive-site.xml:/spark/conf/hive-site.xml"
+
+networks:
+  default:
+    external:
+      name: qwerty
+```
 
 #### 1. Apache Hive
 It simulates an `hdfs` file system.
@@ -21,15 +46,15 @@ An Hive metastore is available at `thrift:hive-metastore:9083`.
 ```
 docker-compose -f docker-compose-spark.yml up -d
 ```
-It starts an Apache Spark cluster.
-Moreover is starts an Apache Spark Thriftserver, that exposes a jdbc enpoint for SparkSQL queries.
+It starts an Apache Spark cluster, and loads the `hive-site.xml` that contains the configuration parameters for enabling the Spark tables HDFS persistance in Hadoop.
+Moreover it starts an Apache `Spark Thrift Server` that exposes a JDBC enpoint. You can use jdbc connection to `jdbc:hive2://thriftserver:10000` for checking the tables and run SparkSQL queries.
 You can access the Apache Spark dashbaord at [http://spark-master:8080](http://localhost:8084).
 
 #### 3. Ontop
 
 Before starting the docker-compose, it is needed to perform the configuration.
 Ontop automatically loads the Spark JDBC drivers located in `/ontop/jdbc`, and theree files in the `/ontop/input` containing:
-  1. the `*.owl` containing the ontological concepts needed by the Ontop reasoner for describing the semantic of the relational data stored in the Spark tables.
+  1. the `*.owl` file containing the ontological concepts needed by the Ontop reasoner for describing the semantic of the relational data stored in the Spark tables.
   2. the  `*.obda` file containing SQL-to-RDF mappings used by the Virtual Knowledge Graph mechanism of Ontop.
   3. the JDBC connection configuration for the Apache Spark ThriftServer, in the `spark_jdbc.properties` file.
 
@@ -39,17 +64,17 @@ Then, in the `docker-compose-ontop.yml` file, it is needed to bind the files wit
 
 ```
 environment:
-  - "ONTOP_ONTOLOGY_FILE=/opt/ontop/input/FILE.owl"  # ADD ONTOLOGY FILE FOR ONTOP
-  - "ONTOP_MAPPING_FILE=/opt/ontop/input/FILE.obda"  # ADD MAPPING FILE
+  - "ONTOP_ONTOLOGY_FILE=/opt/ontop/input/FILE.owl"  # TODO: ADD ONTOLOGY FILE FOR ONTOP
+  - "ONTOP_MAPPING_FILE=/opt/ontop/input/FILE.obda"  # TODO: ADD MAPPING FILE
   - "ONTOP_PROPERTIES_FILE=/opt/ontop/input/spark_jdbc.properties"
 ```
 
-Finally, it is possible to start the Ontop endpoint by running the following command
+Finally, it is possible to start the OntopSpark endpoint instance by running the following command.
 
 ```
 docker-compose -f docker-compose-ontop.yml up -d
 ```
-This starts an Ontop instance.
+
 In particular the instance is configured to communicate with the Apache Spark Thriftserver.
 The web interface is available at [http://ontop:8080](http://localhost:8090).
 
